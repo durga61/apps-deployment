@@ -1,0 +1,4 @@
+resources:
+  - ../../../base/order
+
+# staging environment customizations can go here

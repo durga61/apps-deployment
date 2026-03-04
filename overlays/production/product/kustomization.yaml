@@ -1,0 +1,4 @@
+resources:
+  - ../../../base/product
+
+# production environment customizations can go here

@@ -1,0 +1,4 @@
+resources:
+  - ../../../base/product
+
+# staging environment customizations can go here

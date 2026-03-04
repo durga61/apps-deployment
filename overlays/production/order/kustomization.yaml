@@ -1,0 +1,4 @@
+resources:
+  - ../../../base/order
+
+# production environment customizations can go here

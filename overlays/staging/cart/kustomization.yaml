@@ -1,0 +1,4 @@
+resources:
+  - ../../../base/cart
+
+# staging environment customizations (e.g. replicas, config) can be added here

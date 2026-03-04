@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: product
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: durga61/product-service
+    argocd-image-updater.argoproj.io/update-strategy: newest-build
+    argocd-image-updater.argoproj.io/allow-tags: "true"
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/your-org/apps-deployment.git'
+    targetRevision: main
+    path: overlays/staging/product
+    plugin:
+      name: kustomize
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: product
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
