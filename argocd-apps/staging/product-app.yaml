@@ -1,23 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cart
-  namespace: argocd
+  name: product
+  namespace: argocd-staging
   annotations:
-    argocd-image-updater.argoproj.io/image-list: durga61/cart-service
+    argocd-image-updater.argoproj.io/image-list: durga61/product-service
     argocd-image-updater.argoproj.io/update-strategy: newest-build
-    argocd-image-updater.argoproj.io/allow-tags: "true"
+    argocd-image-updater.argoproj.io/allow-tags: "regexp:^[a-f0-9]{7}$"
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
     repoURL: 'https://github.com/your-org/apps-deployment.git'
     targetRevision: main
-    path: overlays/staging/cart
-    plugin:
-      name: kustomize
+    path: overlays/staging/product
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: cart
+    namespace: staging
   syncPolicy:
     automated:
       prune: true

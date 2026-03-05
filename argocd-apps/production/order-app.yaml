@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: order
+  namespace: argocd-production
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/your-org/apps-deployment.git'
+    targetRevision: main
+    path: overlays/production/order
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
