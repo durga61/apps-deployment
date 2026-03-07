@@ -29,42 +29,41 @@ This document outlines a complete GitOps pipeline for a microservices architectu
 | `apps-deployment` | K8s manifests & Argo CD configs | `base/`, `overlays/`, `argocd-apps/` |
 
 ### Workflow Flow
-
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Push to cart-service/main                                       │
 └──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-        ┌──────────────────────────────────────┐
-        │ GitHub Actions CI (cart-service)     │
-        │ - Build Dockerfile                   │
-        │ - Push to Docker Hub                 │
-        │ - Tag: durga61/cart-service:<SHA7>   │
-        └──────────────────────┬───────────────┘
-                               │
-                               ▼
-        ┌──────────────────────────────────────────────┐
-        │ Argo CD Image Updater detects new image      │
-        │ - Monitors durga61/cart-service registry     │
-        │ - newest-build strategy + allow-tags: true   │
-        └──────────────────────┬──────────────────────┘
-                               │
-                               ▼
-        ┌──────────────────────────────────────────────┐
-        │ Image Updater commits to apps-deployment     │
-        │ - Updates base/cart/kustomization.yaml       │
-        │ - New image tag replaces old tag             │
-        │ - Git commit to main branch                  │
-        └──────────────────────┬──────────────────────┘
-                               │
-                               ▼
-        ┌──────────────────────────────────────────────┐
-        │ Argo CD detects apps-deployment change       │
-        │ - Regenerates K8s manifests via kustomize    │
-        │ - Syncs to cluster                           │
-        │ - Cart service pod(s) updated                │
-        └──────────────────────────────────────────────┘
+               │
+               ▼
+    ┌──────────────────────────────────────┐
+    │ GitHub Actions CI (cart-service)     │
+    │ - Build Dockerfile                   │
+    │ - Push to Docker Hub                 │
+    │ - Tag: durga61/cart-service:<SHA7>   │
+    └──────────────────────┬───────────────┘
+                 │
+                 ▼
+    ┌──────────────────────────────────────────────┐
+    │ Argo CD Image Updater detects new image      │
+    │ - Monitors durga61/cart-service registry     │
+    │ - newest-build strategy + allow-tags   │
+    └──────────────────────┬──────────────────────┘
+                 │
+                 ▼
+    ┌──────────────────────────────────────────────┐
+    │ Image Updater commits to apps-deployment     │
+    │ - Updates base/cart/kustomization.yaml       │
+    │ - New image tag replaces old tag             │
+    │ - Git commit to main branch                  │
+    └──────────────────────┬──────────────────────┘
+                 │
+                 ▼
+    ┌──────────────────────────────────────────────┐
+    │ Argo CD detects apps-deployment change       │
+    │ - Regenerates K8s manifests via kustomize    │
+    │ - Syncs overlays/staging/cart to cluster     │
+    │ - Cart service pod(s) updated                │
+    └──────────────────────────────────────────────┘
 ```
 
 ---
