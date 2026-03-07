@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: cart
-  namespace: staging
+  namespace: argocd
   annotations:
     argocd-image-updater.argoproj.io/image-list: durga61/cart-service
     argocd-image-updater.argoproj.io/update-strategy: newest-build
@@ -24,6 +24,7 @@ spec:
     syncOptions:
     # Automatically create the namespace if it does not exist
     - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
     automated:
       prune: true
       selfHeal: true
