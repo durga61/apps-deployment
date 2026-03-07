@@ -263,7 +263,10 @@ spec:
 
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#This is a known kubectl apply client-side issue with large CRDs (it tries to store a huge last-applied-configuration annotation).
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 kubectl get pods -n argocd
 
@@ -274,6 +277,7 @@ You can now access the Argo CD web interface in your browser at https://localhos
 
 Retrieve the initial admin password: The default password for the admin user is stored in a Kubernetes secret. Retrieve it using this command:
 
+#Use git bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
 
@@ -283,6 +287,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 ```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/config/install.yaml
+
+kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/config/install.yaml
 ```
 
 ### Step 3: Configure Image Updater Git Credentials
@@ -320,9 +326,9 @@ data:
 ### Step 4: Apply Argo CD Applications
 
 ```bash
-kubectl apply -f apps-deployment/argocd-apps/cart-app.yaml
-kubectl apply -f apps-deployment/argocd-apps/product-app.yaml
-kubectl apply -f apps-deployment/argocd-apps/order-app.yaml
+kubectl apply -f apps-deployment/argocd-apps/staging/cart-app.yaml
+kubectl apply -f apps-deployment/argocd-apps/staging/product-app.yaml
+kubectl apply -f apps-deployment/argocd-apps/staging/order-app.yaml
 ```
 
 Verify:

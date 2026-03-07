@@ -3,8 +3,8 @@ kind: Component
 
 images:
   - name: durga61/cart-service
-    newTag: latest
+    newTag: 47c2b52
   - name: durga61/order-service
-    newTag: latest
+    newTag: 594fac5
   - name: durga61/product-service
-    newTag: latest
+    newTag: 13db18f
