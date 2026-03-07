@@ -329,6 +329,10 @@ data:
 kubectl apply -f apps-deployment/argocd-apps/staging/cart-app.yaml
 kubectl apply -f apps-deployment/argocd-apps/staging/product-app.yaml
 kubectl apply -f apps-deployment/argocd-apps/staging/order-app.yaml
+
+kubectl delete -f apps-deployment/argocd-apps/staging/cart-app.yaml
+kubectl delete -f apps-deployment/argocd-apps/staging/product-app.yaml
+kubectl delete -f apps-deployment/argocd-apps/staging/order-app.yaml
 ```
 
 Verify:

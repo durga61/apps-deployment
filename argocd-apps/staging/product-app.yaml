@@ -7,10 +7,12 @@ metadata:
   name: product
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: durga61/product-service
+    argocd-image-updater.argoproj.io/image-list: product=durga61/product-service
+    argocd-image-updater.argoproj.io/product.kustomize.image-name: durga61/product-service
     argocd-image-updater.argoproj.io/update-strategy: newest-build
     argocd-image-updater.argoproj.io/allow-tags: "regexp:^[a-f0-9]{7}$"
     argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/write-back-target: kustomization:../../../base/images
     argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
