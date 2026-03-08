@@ -6,4 +6,4 @@ images:
   - name: durga61/order-service
     newTag: dc4cbf8
   - name: durga61/product-service
-    newTag: 13db18f
+    newTag: 1c15a3f
