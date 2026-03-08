@@ -372,6 +372,22 @@ kubectl get applications -n argocd
 
 ---
 
+## Production Best Practices
+
+For GitOps environments:
+
+✔ Use GitHub App or PAT with minimal permissions
+✔ Limit to argocd repo
+✔ Use separate branch per environment
+
+Example:
+
+dev branch     → auto updated by ImageUpdater
+staging branch → PR promotion
+prod branch    → PR promotion
+
+This prevents automatic production deployments.
+
 ## Scaling to Additional Microservices
 
 To add a new microservice (e.g., `user-service`):
