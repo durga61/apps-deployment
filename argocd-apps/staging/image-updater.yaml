@@ -1,0 +1,27 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: staging-image-updater
+  namespace: argocd
+spec:
+  commonUpdateSettings:
+    updateStrategy: newest-build
+    allowTags: regexp:^[a-f0-9]{7}$
+  writeBackConfig:
+    method: git
+    gitConfig:
+      branch: main
+      writeBackTarget: kustomization:../../../base/images
+  applicationRefs:
+    - namePattern: cart
+      images:
+        - alias: cart
+          imageName: durga61/cart-service
+    - namePattern: order
+      images:
+        - alias: order
+          imageName: durga61/order-service
+    - namePattern: product
+      images:
+        - alias: product
+          imageName: durga61/product-service

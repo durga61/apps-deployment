@@ -3,14 +3,6 @@ kind: Application
 metadata:
   name: order
   namespace: argocd
-  annotations:
-    argocd-image-updater.argoproj.io/image-list: order=durga61/order-service
-    argocd-image-updater.argoproj.io/order.kustomize.image-name: durga61/order-service
-    argocd-image-updater.argoproj.io/update-strategy: newest-build
-    argocd-image-updater.argoproj.io/allow-tags: "regexp:^[a-f0-9]{7}$"
-    argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/write-back-target: kustomization:../../../base/images
-    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
