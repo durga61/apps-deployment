@@ -4,6 +4,6 @@ images:
   - name: durga61/cart-service
     newTag: f2de1d6
   - name: durga61/order-service
-    newTag: 594fac5
+    newTag: 59f31d8
   - name: durga61/product-service
     newTag: 13db18f
