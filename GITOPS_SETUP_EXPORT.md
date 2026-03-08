@@ -46,13 +46,13 @@ This document outlines a complete GitOps pipeline for a microservices architectu
     ┌──────────────────────────────────────────────┐
     │ Argo CD Image Updater detects new image      │
     │ - Monitors durga61/cart-service registry     │
-    │ - newest-build strategy + allow-tags   │
+    │ - newest-build strategy + allow-tags: regexp:^[a-f0-9]{7}$
     └──────────────────────┬──────────────────────┘
                  │
                  ▼
     ┌──────────────────────────────────────────────┐
     │ Image Updater commits to apps-deployment     │
-    │ - Updates base/cart/kustomization.yaml       │
+    │ - Updates base/images/kustomization.yaml       │
     │ - New image tag replaces old tag             │
     │ - Git commit to main branch                  │
     └──────────────────────┬──────────────────────┘
@@ -167,15 +167,38 @@ apps-deployment/
 #### Base Kustomization Example (base/cart/kustomization.yaml)
 
 ```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
   - deployment.yaml
 
-images:
-  - name: durga61/cart-service
-    newTag: latest
+components:
+  - ../images
 ```
 
-The `images:` section is where **Argo CD Image Updater** automatically updates the tag.
+This base file keeps service manifests simple and reuses a shared image-tag component.
+
+#### Central Image Tags File (base/images/kustomization.yaml)
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: durga61/cart-service
+    newTag: f2de1d6
+  - name: durga61/order-service
+    newTag: dc4cbf8
+  - name: durga61/product-service
+    newTag: 1c15a3f
+```
+
+`base/images/kustomization.yaml` is the single source of truth for image tags across services:
+
+- Each `name` maps to a container image used in base deployments.
+- `newTag` is the deployed immutable release tag (short commit SHA).
+- Argo CD Image Updater writes back here, so one commit updates the target tag for the corresponding service.
+- Because base service kustomizations include this as a component, staging and production overlays inherit the same image-tag mechanism.
 
 #### Base Deployment Example (base/cart/deployment.yaml)
 
@@ -219,31 +242,52 @@ kind: Application
 metadata:
   name: cart
   namespace: argocd
-  annotations:
-    argocd-image-updater.argoproj.io/image-list: durga61/cart-service
-    argocd-image-updater.argoproj.io/update-strategy: newest-build
-    argocd-image-updater.argoproj.io/allow-tags: "true"
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/your-org/apps-deployment.git'
+    repoURL: 'https://github.com/durga61/apps-deployment.git'
     targetRevision: main
     path: overlays/staging/cart
-    plugin:
-      name: kustomize
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: cart
+    namespace: staging
   syncPolicy:
+    syncOptions:
+    # Automatically create the namespace if it does not exist
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
     automated:
       prune: true
       selfHeal: true
+
 ```
 
-**Key Annotations (Image Updater Configuration):**
-- `argocd-image-updater.argoproj.io/image-list`: List of images to monitor (space-separated)
-- `argocd-image-updater.argoproj.io/update-strategy`: Set to `newest-build` to use newest tag by build time
-- `argocd-image-updater.argoproj.io/allow-tags`: Set to `"true"` to allow tag-based updates (e.g., SHA tags)
+#### Argo CD Image Updater Example (argocd-apps/staging/image-updater.yaml)
+
+```yaml
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: staging-image-updater
+  namespace: argocd
+spec:
+  commonUpdateSettings:
+    updateStrategy: newest-build
+    allowTags: regexp:^[a-f0-9]{7}$
+  writeBackConfig:
+    method: git
+    gitConfig:
+      branch: main
+      writeBackTarget: kustomization:../../../base/images
+  applicationRefs:
+    - namePattern: cart
+      images:
+        - alias: cart
+          imageName: durga61/cart-service
+```
+
+This resource links Argo CD Applications to container registries and writes selected image tag updates back to Git.
+
 
 ---
 
@@ -366,7 +410,7 @@ kubectl get applications -n argocd
 3. **Monitor Argo CD Image Updater:**
    - Watch logs: `kubectl logs -n argocd -l app.kubernetes.io/name=argocd-image-updater -f`
    - Expect: Image Updater detects new tag, creates commit in `apps-deployment`
-   - Check `apps-deployment` repo for updated `base/cart/kustomization.yaml`
+   - Check `apps-deployment` repo for updated `base/images/kustomization.yaml`
 
 4. **Monitor Argo CD:**
    - Watch Argo CD UI (port-forward: `kubectl port-forward -n argocd svc/argocd-server 8080:443`)
@@ -375,21 +419,47 @@ kubectl get applications -n argocd
 
 ---
 
+## Centralized Kustomize Image File
+
+`base/images/kustomization.yaml` is the shared image-tag registry for all services.
+Image Updater commits here, and all overlays consume the updated tags through base components.
+
 ## Production Best Practices
 
 For GitOps environments:
 
-✔ Use GitHub App or PAT with minimal permissions
-✔ Limit to argocd repo
-✔ Use separate branch per environment
+- Use GitHub App or PAT with minimal permissions.
+- Scope credentials to only the deployment repository.
+- Use separate branches/environments and promote with PRs.
 
-Example:
+Example branch model:
 
-dev branch     → auto updated by ImageUpdater
-staging branch → PR promotion
-prod branch    → PR promotion
+- `dev` branch: auto-updated by Image Updater.
+- `staging` branch: promoted through PR after validation.
+- `production` branch: promoted through PR after approval.
 
-This prevents automatic production deployments.
+This prevents unreviewed production changes and keeps rollback/release history clean.
+
+## Staging to Production Promotion Strategy (Pipeline)
+
+Use a pipeline-based promotion flow instead of manual copy-paste or ad-hoc cherry-picks.
+
+### Recommended Flow
+
+1. CI publishes image tags (for example `durga61/cart-service:<sha7>`).
+2. Argo CD Image Updater updates `base/images/kustomization.yaml` for staging validation.
+3. Automated tests run against staging after sync completes.
+4. On success, a promotion pipeline creates a PR to production with only approved manifest changes.
+5. After review and merge, Argo CD production apps sync from `overlays/production/*`.
+
+### Why This Is Better Than Manual Copy-Paste / Cherry-Pick
+
+- Lower human error: avoids missing files, wrong tag copies, and accidental extra commits.
+- Deterministic changes: promotion PRs are generated from known inputs, so drift is reduced.
+- Better audit trail: each promotion has a single PR with reviewer, commit history, and test evidence.
+- Safer rollbacks: reverting a failed promotion is one Git revert/rollback action.
+- Policy enforcement: branch protection and required checks gate production changes consistently.
+- Scales cleanly: the same pipeline pattern works for many services without extra manual effort.
 
 ## Scaling to Additional Microservices
 
@@ -932,3 +1002,4 @@ kubectl patch app <app-name> -n argocd -p '{"spec":{"syncPolicy":{}}}' --type me
 **Document Generated:** March 4, 2026  
 **Status:** Complete setup exported for reference and reuse  
 **Future Scope Added:** Comprehensive roadmap with 12 enhancement areas
+
