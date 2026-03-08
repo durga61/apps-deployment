@@ -130,38 +130,40 @@ Example: `durga61/cart-service:abc1234`
 
 ### Deployment Repo (apps-deployment)
 
-```
+```text
 apps-deployment/
-├── README.md
-├── base/                           # Kustomize bases
-│   ├── cart/
-│   │   ├── deployment.yaml
-│   │   └── kustomization.yaml
-│   ├── product/
-│   │   ├── deployment.yaml
-│   │   └── kustomization.yaml
-│   └── order/
-│       ├── deployment.yaml
-│       └── kustomization.yaml
-├── overlays/                       # Environment-specific overlays
-│   ├── staging/
-│   │   ├── cart/
-│   │   │   └── kustomization.yaml
-│   │   ├── product/
-│   │   │   └── kustomization.yaml
-│   │   └── order/
-│   │       └── kustomization.yaml
-│   └── production/
-│       ├── cart/
-│       │   └── kustomization.yaml
-│       ├── product/
-│       │   └── kustomization.yaml
-│       └── order/
-│           └── kustomization.yaml
-└── argocd-apps/                    # One Argo CD Application per service
-    ├── cart-app.yaml
-    ├── product-app.yaml
-    └── order-app.yaml
+|-- README.md
+|-- base/
+|   |-- cart/
+|   |   |-- deployment.yaml
+|   |   `-- kustomization.yaml
+|   |-- order/
+|   |   |-- deployment.yaml
+|   |   `-- kustomization.yaml
+|   |-- product/
+|   |   |-- deployment.yaml
+|   |   `-- kustomization.yaml
+|   `-- images/
+|       `-- kustomization.yaml
+|-- overlays/
+|   |-- staging/
+|   |   |-- cart/kustomization.yaml
+|   |   |-- order/kustomization.yaml
+|   |   `-- product/kustomization.yaml
+|   `-- production/
+|       |-- cart/kustomization.yaml
+|       |-- order/kustomization.yaml
+|       `-- product/kustomization.yaml
+`-- argocd-apps/
+    |-- staging/
+    |   |-- cart-app.yaml
+    |   |-- order-app.yaml
+    |   |-- product-app.yaml
+    |   `-- image-updater.yaml
+    `-- production/
+        |-- cart-app.yaml
+        |-- order-app.yaml
+        `-- product-app.yaml
 ```
 
 #### Base Kustomization Example (base/cart/kustomization.yaml)
@@ -234,7 +236,7 @@ resources:
 # replicas, resource limits, config maps, etc.
 ```
 
-#### Argo CD Application Example (argocd-apps/cart-app.yaml)
+#### Argo CD Application Example (argocd-apps/staging/cart-app.yaml)
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -440,6 +442,8 @@ Example branch model:
 
 This prevents unreviewed production changes and keeps rollback/release history clean.
 
+Current branch note: production app manifests currently use placeholder repo URL values (https://github.com/your-org/apps-deployment.git) and should be updated before enabling production sync.
+
 ## Staging to Production Promotion Strategy (Pipeline)
 
 Use a pipeline-based promotion flow instead of manual copy-paste or ad-hoc cherry-picks.
@@ -510,9 +514,9 @@ Argo CD automatically syncs when manifests change, ensuring cluster matches Git.
 ### Image Updater Not Detecting Tags
 
 **Check:**
-- Allowed tags regex in annotations: `argocd-image-updater.argoproj.io/allow-tags: "true"`
-- Update strategy: `argocd-image-updater.argoproj.io/update-strategy: newest-build`
-- Image list is correct: `argocd-image-updater.argoproj.io/image-list: durga61/service`
+- `commonUpdateSettings.allowTags` is valid and matches pushed tags (for this repo: `regexp:^[a-f0-9]{7}$`).
+- `commonUpdateSettings.updateStrategy` is set correctly (for this repo: `newest-build`).
+- `applicationRefs` includes the expected app names and image names.
 
 **Debug:**
 ```bash
@@ -558,7 +562,8 @@ kubectl patch app <app-name> -n argocd -p '{"spec":{"syncPolicy":{}}}' --type me
 - `README.md` - Documentation
 - `base/{cart,product,order}/*` - Kustomize bases with image definitions
 - `overlays/{staging,production}/{cart,product,order}/*` - Environment overlays
-- `argocd-apps/{cart,product,order}-app.yaml` - Argo CD Application manifests with Image Updater annotations
+- `argocd-apps/staging/*-app.yaml` and `argocd-apps/production/*-app.yaml` - Argo CD Application manifests per environment.
+- `argocd-apps/staging/image-updater.yaml` - ImageUpdater CR used to update image tags in Git.
 
 ---
 
@@ -1002,4 +1007,5 @@ kubectl patch app <app-name> -n argocd -p '{"spec":{"syncPolicy":{}}}' --type me
 **Document Generated:** March 4, 2026  
 **Status:** Complete setup exported for reference and reuse  
 **Future Scope Added:** Comprehensive roadmap with 12 enhancement areas
+
 
